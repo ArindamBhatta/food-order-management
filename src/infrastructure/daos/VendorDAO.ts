@@ -13,8 +13,8 @@ export class VendorDAO {
         return row;
     }
 
-    async getByEmail(email: string) {
-        const [row] = await db.select().from(vendor).where(eq(vendor.ownerEmail, email)).limit(1);
+    async getByPersonId(personId: number) {
+        const [row] = await db.select().from(vendor).where(eq(vendor.personId, personId)).limit(1);
         return row;
     }
 

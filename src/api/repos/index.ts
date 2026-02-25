@@ -21,8 +21,8 @@ const cartDAO = new CartDAO();
 const cartItemDAO = new CartItemDAO();
 
 // Create repository instances
-const adminRepo = new AdminRepo(vendorDAO);
-const vendorRepo = new VendorRepo(vendorDAO);
+const adminRepo = new AdminRepo(vendorDAO, personDAO);
+const vendorRepo = new VendorRepo(vendorDAO, personDAO);
 const customerRepo = new CustomerRepo(customerDAO, personDAO, cartDAO, cartItemDAO);
 const foodRepo = new FoodRepo(foodDAO, vendorDAO);
 const personRepo = new PersonRepo(personDAO);

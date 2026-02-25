@@ -1,9 +1,7 @@
 export default class VendorEntity {
   private _vendorId?: number;
+  private _personId?: number | null;
   private _vendorName: string;
-  private _ownerName: string;
-  private _ownerEmail: string;
-  private _ownerPhone: string;
   private _vendorDescription?: string | null;
   private _cuisineType?: string | null;
   private _openingTime?: string | null;
@@ -15,40 +13,42 @@ export default class VendorEntity {
   private _fssaiLicense?: string | null;
   private _ratingAverage: number;
   private _totalReviews: number;
+  private _ownerName?: string | null;
+  private _ownerEmail?: string | null;
+  private _ownerPhone?: string | null;
+
+  // Authentication fields mirrored from Person
   private _password?: string | null;
   private _salt?: string | null;
   private _accessToken?: string | null;
   private _refreshToken?: string | null;
-  private _createdAt: Date;
 
   constructor(data: {
     vendorId?: number;
+    personId?: number | null;
     vendorName: string;
-    ownerName: string;
-    ownerEmail: string;
-    ownerPhone: string;
     vendorDescription?: string | null;
     cuisineType?: string | null;
     openingTime?: string | null;
     closingTime?: string | null;
     avgPreparationTime?: number | null;
     vendorLogoUrl?: string | null;
-    isActive?: boolean;
+    isActive?: boolean | null;
     gstNumber?: string | null;
     fssaiLicense?: string | null;
-    ratingAverage?: number;
-    totalReviews?: number;
+    ratingAverage?: number | null;
+    totalReviews?: number | null;
+    ownerName?: string | null;
+    ownerEmail?: string | null;
+    ownerPhone?: string | null;
     password?: string | null;
     salt?: string | null;
     accessToken?: string | null;
     refreshToken?: string | null;
-    createdAt?: Date;
   }) {
     this._vendorId = data.vendorId;
+    this._personId = data.personId;
     this._vendorName = data.vendorName;
-    this._ownerName = data.ownerName;
-    this._ownerEmail = data.ownerEmail;
-    this._ownerPhone = data.ownerPhone;
     this._vendorDescription = data.vendorDescription;
     this._cuisineType = data.cuisineType;
     this._openingTime = data.openingTime;
@@ -60,18 +60,18 @@ export default class VendorEntity {
     this._fssaiLicense = data.fssaiLicense;
     this._ratingAverage = data.ratingAverage ?? 0;
     this._totalReviews = data.totalReviews ?? 0;
+    this._ownerName = data.ownerName;
+    this._ownerEmail = data.ownerEmail;
+    this._ownerPhone = data.ownerPhone;
     this._password = data.password;
     this._salt = data.salt;
     this._accessToken = data.accessToken;
     this._refreshToken = data.refreshToken;
-    this._createdAt = data.createdAt || new Date();
   }
 
   get vendorId() { return this._vendorId; }
+  get personId() { return this._personId; }
   get vendorName() { return this._vendorName; }
-  get ownerName() { return this._ownerName; }
-  get ownerEmail() { return this._ownerEmail; }
-  get ownerPhone() { return this._ownerPhone; }
   get vendorDescription() { return this._vendorDescription; }
   get cuisineType() { return this._cuisineType; }
   get openingTime() { return this._openingTime; }
@@ -83,19 +83,19 @@ export default class VendorEntity {
   get fssaiLicense() { return this._fssaiLicense; }
   get ratingAverage() { return this._ratingAverage; }
   get totalReviews() { return this._totalReviews; }
+  get ownerName() { return this._ownerName; }
+  get ownerEmail() { return this._ownerEmail; }
+  get ownerPhone() { return this._ownerPhone; }
   get password() { return this._password; }
   get salt() { return this._salt; }
   get accessToken() { return this._accessToken; }
   get refreshToken() { return this._refreshToken; }
-  get createdAt() { return this._createdAt; }
 
   static fromRow(row: any): VendorEntity {
     return new VendorEntity({
       vendorId: row.vendorId,
+      personId: row.personId,
       vendorName: row.vendorName,
-      ownerName: row.ownerName,
-      ownerEmail: row.ownerEmail,
-      ownerPhone: row.ownerPhone,
       vendorDescription: row.vendorDescription,
       cuisineType: row.cuisineType,
       openingTime: row.openingTime,
@@ -107,20 +107,13 @@ export default class VendorEntity {
       fssaiLicense: row.fssaiLicense,
       ratingAverage: row.ratingAverage,
       totalReviews: row.totalReviews,
-      password: row.password,
-      salt: row.salt,
-      accessToken: row.accessToken,
-      refreshToken: row.refreshToken,
-      createdAt: row.createdAt,
     });
   }
 
   toRow() {
     return {
+      personId: this._personId,
       vendorName: this._vendorName,
-      ownerName: this._ownerName,
-      ownerEmail: this._ownerEmail,
-      ownerPhone: this._ownerPhone,
       vendorDescription: this._vendorDescription,
       cuisineType: this._cuisineType,
       openingTime: this._openingTime,
@@ -132,10 +125,6 @@ export default class VendorEntity {
       fssaiLicense: this._fssaiLicense,
       ratingAverage: this._ratingAverage,
       totalReviews: this._totalReviews,
-      password: this._password,
-      salt: this._salt,
-      accessToken: this._accessToken,
-      refreshToken: this._refreshToken,
     };
   }
 }

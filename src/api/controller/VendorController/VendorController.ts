@@ -85,7 +85,17 @@ export default class VendorController implements IVendorController {
       const vendor = await this.vendorService.vendorProfile(parseInt(user._id));
       if (!vendor) return payload.res.status(404).json({ success: false, message: "Vendor not found" });
 
-      return payload.res.status(200).json({ success: true, vendor });
+      const response = new VendorResponseDTO(vendor);
+      return payload.res.status(200).json({
+        success: true,
+        vendor: {
+          ...response,
+          // Re-adding person details because they're on vendor object now
+          ownerName: vendor.ownerName,
+          ownerEmail: vendor.ownerEmail,
+          ownerPhone: vendor.ownerPhone
+        }
+      });
     } catch (error: any) {
       return payload.res.status(500).json({ success: false, message: error.message });
     }

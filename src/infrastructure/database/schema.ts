@@ -6,17 +6,18 @@ export const person = sqliteTable('person', {
     personId: integer('person_id').primaryKey({ autoIncrement: true }),
     fullName: text('full_name').notNull(),
     email: text('email').notNull().unique(),
+    password: text('password'),
+    salt: text('salt'),
     phoneNumber: text('phone_number'),
+    otp: integer('otp'),
+    verified: integer('verified', { mode: 'boolean' }).default(false),
+    otpExpiry: integer('otp_expiry', { mode: 'timestamp' }),
     dateOfBirth: text('date_of_birth'),
     profileImageUrl: text('profile_image_url'),
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
-    password: text('password'),
-    salt: text('salt'),
-    otp: integer('otp'),
-    otpExpiry: integer('otp_expiry', { mode: 'timestamp' }),
-    verified: integer('verified', { mode: 'boolean' }).default(false),
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Customer Table
@@ -32,10 +33,8 @@ export const customer = sqliteTable('customer', {
 // Vendor Table
 export const vendor = sqliteTable('vendor', {
     vendorId: integer('vendor_id').primaryKey({ autoIncrement: true }),
+    personId: integer('person_id').references(() => person.personId),
     vendorName: text('vendor_name').notNull(),
-    ownerName: text('owner_name').notNull(),
-    ownerEmail: text('owner_email').notNull(),
-    ownerPhone: text('owner_phone').notNull(),
     vendorDescription: text('vendor_description'),
     cuisineType: text('cuisine_type'),
     openingTime: text('opening_time'),
@@ -48,11 +47,6 @@ export const vendor = sqliteTable('vendor', {
     fssaiLicense: text('fssai_license'),
     ratingAverage: real('rating_average').default(0),
     totalReviews: integer('total_reviews').default(0),
-    password: text('password'),
-    salt: text('salt'),
-    accessToken: text('access_token'),
-    refreshToken: text('refresh_token'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Address Table

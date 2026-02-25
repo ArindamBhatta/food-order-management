@@ -22,6 +22,7 @@ export default class VendorService implements IVendorService {
 
   vendorLogin = async (loginVendor: LoginVendorDTO): Promise<LoginResponse> => {
     try {
+      // findVendor now handles person lookup internally
       const vendor = await this.vendorRepo.findVendor({
         email: loginVendor.email,
       });
@@ -43,7 +44,7 @@ export default class VendorService implements IVendorService {
       const authPayload: VendorPayload = {
         _id: vendor.vendorId!.toString(),
         role: "vendor",
-        email: vendor.ownerEmail,
+        email: vendor.ownerEmail!,
       };
 
       const accessToken = generateAccessToken(authPayload);
@@ -87,7 +88,6 @@ export default class VendorService implements IVendorService {
     file: any
   ): Promise<VendorEntity | null> => {
     try {
-      // Mock upload for now or use utility if available
       const secure_url = "http://example.com/image.jpg";
 
       const updatedVendor = await this.vendorRepo.updateShopImage(vendorId, secure_url);
