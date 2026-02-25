@@ -1,60 +1,95 @@
-# Food Delivery App
+# Premium Food Order Management System
 
-A scalable, modular, and maintainable food delivery backend built with Node.js, TypeScript, Express, and MongoDB, following the Clean Architecture pattern.
+A production-ready, modular, and highly maintainable backend for a multi-persona food delivery platform. Built with a focus on Clean Architecture, type safety, and centralized resource management.
 
-## Clean Architecture
+## 🚀 Overview
 
-The codebase is organized in layers to enforce separation of concerns:
+This project implements a robust backend for managing food orders, vendors, and customers. It features a sophisticated three-persona system (Admin, Vendor, Customer) powered by a unified identity foundation.
 
-Core business models : - **Entities**
+### Key Architectural Highlights
+- **Unified Identity System**: Uses a shared `Person` entity for all personas, ensuring single-source logic for authentication, security, and credentials.
+- **Clean Layered Architecture**:
+    - **Entities**: Domain models with encapsulated business logic.
+    - **Repositories**: Abstracted data access layer using Drizzle ORM.
+    - **Services**: Pure business logic isolation.
+    - **Controllers & DTOs**: Strict request/response validation and handling.
+- **Centralized Response Engine**: A unified `callService` middleware handles all success/error responses consistently across the API.
+- **Role-Based Access Control (RBAC)**: Secure middleware protecting routes based on persona permissions.
 
-ODM : - **Mongoose model**
+## 🛠 Tech Stack
 
-DBOperation : - **Repositories**
+- **Runtime**: Node.js & TypeScript
+- **Framework**: Express.js
+- **Database**: SQLite (Local-first, high performance)
+- **ORM**: Drizzle ORM (Type-safe, lightweight)
+- **Authentication**: JWT (JSON Web Tokens) with AuthPayload union types.
+- **File Handling**: Multer for vendor shop and food image uploads.
+- **Utility**: Bcrypt for high-security password hashing.
 
-Business logic : - **Services**
+## 📊 Database Design
 
-Presentation : - **Controllers + DTOs**
+The project uses a relational schema optimized for SQLite:
+- **Person**: Core credentials and common identity data.
+- **Vendor**: Business-specific details linked to a Person ID.
+- **Customer**: Profile data linked to a Person ID.
+- **Food/Cart**: Managed relationship for order fulfillment.
 
-## 📊 Database Schema
+## ⚙️ Setup & Installation
 
-```mermaid
-erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    VENDOR ||--o{ FOOD : provides
-    ORDER ||--o{ ORDER_FOOD : contains
-    FOOD ||--o{ ORDER_FOOD : included_in
+### 1. Prerequisites
+- Node.js (v18+)
+- npm
 
-    CUSTOMER {
-        int id PK
-        string name
-    }
-    VENDOR {
-        int id PK
-        string name
-    }
-    FOOD {
-        int id PK
-        int vendor_id FK
-        string name
-    }
-    ORDER {
-        int id PK
-        int customer_id FK
-        datetime created_at
-    }
-    ORDER_FOOD {
-        int id PK
-        int order_id FK
-        int food_id FK
-        int unit
-    }
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+PORT=8001
+API_SECRET=your_jwt_secret_key
+DATABASE_URL=sqlite.db
 ```
 
-## Tech Stack
+### 3. Installation
+```bash
+npm install
+```
 
-- Node.js, TypeScript, Express.js
-- MongoDB (Mongoose ODM)
-- Cloudinary (image upload)
-- JWT authentication
-- Winston logger
+### 4. Database Synchronization
+Push the schema to your local SQLite database:
+```bash
+npm run db:push
+```
+
+### 5. Start Development Server
+```bash
+npm run dev
+```
+
+## 📜 Available Scripts
+
+| Script | Description |
+| :--- | :--- |
+| `npm run dev` | Starts the server with `nodemon` for auto-reloading. |
+| `npm run build` | Compiles TypeScript to production JavaScript. |
+| `npm run start` | Runs the compiled application. |
+| `npm run db:push` | Syncs `schema.ts` with the SQLite database. |
+| `npm run db:studio` | Opens Drizzle Studio for visual database management. |
+
+## 🏗 Project Structure
+
+```text
+src/
+├── api/
+│   ├── controller/   # Request handlers & Response formatting
+│   ├── entity/       # Business domain entities (Rich Models)
+│   ├── services/     # Core Business Logic
+│   ├── repos/        # Data Access (Repository Pattern)
+│   ├── dto/          # Data Transfer Objects & Interfaces
+│   ├── middleware/   # Auth, Upload, and Response wrappers
+│   └── utils/        # Auth helpers & Error classes
+├── infrastructure/
+│   ├── database/     # Drizzle schema & connectivity
+│   └── daos/         # Physical data access objects
+└── index.ts          # Application entry point
+```
+
+
