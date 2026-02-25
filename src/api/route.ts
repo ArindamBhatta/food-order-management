@@ -32,6 +32,8 @@ const routes: RouteMap = {
   },
   [HttpMethod.POST]: {
     "create-vendor": [auth(["admin"]), adminController.createVendor], // 🛡 admin-only
+    "admin-signup": adminController.signUp,
+    "admin-login": adminController.signIn,
     "vendor-login": vendorController.vendorLogin,
     "create-customer": customerController.signUp,
     "customer-login": customerController.signIn,

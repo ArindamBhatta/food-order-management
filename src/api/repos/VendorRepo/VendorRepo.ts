@@ -12,6 +12,17 @@ export default class VendorRepo implements IVendorRepo {
     this.personDao = personDao;
   }
 
+  create = async (vendor: VendorEntity): Promise<VendorEntity> => {
+    try {
+      const rawData = vendor.toRow();
+      const savedRow = await this.vendorDao.create(rawData);
+      return VendorEntity.fromRow(savedRow);
+    } catch (error) {
+      console.error("Error in VendorRepo.create:", error);
+      throw error;
+    }
+  };
+
   findVendor = async ({
     vendorId,
     email,
@@ -23,11 +34,9 @@ export default class VendorRepo implements IVendorRepo {
       let vendorRow = null;
       let personRow = null;
 
-      // Find the person via email
       if (email) {
         personRow = await this.personDao.getByEmail(email);
         if (personRow) {
-          // I need a getByPersonId for find the vendor
           vendorRow = await this.vendorDao.getByPersonId(personRow.personId);
         }
       } else if (vendorId) {
@@ -79,7 +88,6 @@ export default class VendorRepo implements IVendorRepo {
       const vendorRow = await this.vendorDao.getById(vendorId);
       if (!vendorRow || !vendorRow.personId) return null;
 
-      // Update person info if applicable
       if (updateData.ownerName || updateData.ownerEmail || updateData.ownerPhone) {
         await this.personDao.update(vendorRow.personId, {
           fullName: updateData.ownerName,
@@ -88,7 +96,6 @@ export default class VendorRepo implements IVendorRepo {
         });
       }
 
-      // Update vendor info
       const updatedVendorRow = await this.vendorDao.update(vendorId, updateData);
       const personRow = await this.personDao.getById(vendorRow.personId);
 
@@ -129,6 +136,53 @@ export default class VendorRepo implements IVendorRepo {
       });
     } catch (error) {
       console.error("Error in VendorRepo.updateShopImage:", error);
+      throw error;
+    }
+  };
+
+
+
+  getAll = async (): Promise<VendorEntity[]> => {
+    try {
+      const vendors = await this.vendorDao.getAll();
+      const results: VendorEntity[] = [];
+
+      for (const v of vendors) {
+        let personRow = null;
+        if (v.personId) {
+          personRow = await this.personDao.getById(v.personId);
+        }
+        results.push(new VendorEntity({
+          ...v,
+          ownerName: personRow?.fullName,
+          ownerEmail: personRow?.email,
+          ownerPhone: personRow?.phoneNumber,
+          verified: personRow?.verified ?? false
+        }));
+      }
+      return results;
+    } catch (error) {
+      console.error("Error in VendorRepo.getAll:", error);
+      throw error;
+    }
+  };
+
+  getById = async (vendorId: number): Promise<VendorEntity | null> => {
+    try {
+      const row = await this.vendorDao.getById(vendorId);
+      if (!row) return null;
+
+      const personRow = row.personId ? await this.personDao.getById(row.personId) : null;
+
+      return new VendorEntity({
+        ...row,
+        ownerName: personRow?.fullName,
+        ownerEmail: personRow?.email,
+        ownerPhone: personRow?.phoneNumber,
+        verified: personRow?.verified ?? false
+      });
+    } catch (error) {
+      console.error(`Error in VendorRepo.getById for ID ${vendorId}:`, error);
       throw error;
     }
   };

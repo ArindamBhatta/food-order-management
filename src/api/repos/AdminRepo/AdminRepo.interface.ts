@@ -1,7 +1,7 @@
+import AdminEntity from "../../entity/AdminEntity";
 import VendorEntity from "../../entity/VendorEntity";
 
 export default interface IAdminRepo {
-  createVendor(payload: VendorEntity): Promise<VendorEntity>;
-  getVendorByID(vendorId: number): Promise<VendorEntity | null>;
-  getAllVendor(): Promise<VendorEntity[]>;
+  findAdmin(query: { adminId?: number; email?: string }): Promise<AdminEntity | null>;
+  createAdmin(admin: AdminEntity): Promise<AdminEntity>;
 }

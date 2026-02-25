@@ -2,7 +2,6 @@ import express, {
   Request,
   Response,
   IRouter,
-  NextFunction,
   RequestHandler,
   Router,
 } from "express";
@@ -104,7 +103,17 @@ const callService = async (method: HttpMethod, req: Request, res: Response) => {
     }
 
     if (result !== undefined && !res.headersSent) {
-      return res.status(200).json({
+      let statusCode = 200;
+      if (typeof result === 'object' && result.statusCode) {
+        statusCode = result.statusCode;
+        delete result.statusCode;
+      } else if (method === HttpMethod.POST) {
+        const isLogin = serviceName.toLowerCase().includes('login') ||
+          serviceName.toLowerCase().includes('signin');
+        statusCode = isLogin ? 200 : 201;
+      }
+
+      return res.status(statusCode).json({
         success: true,
         ...(typeof result === 'object' ? result : { data: result })
       });

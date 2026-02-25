@@ -4,7 +4,7 @@ import { vendorRepo, foodRepo, adminRepo, customerRepo, personRepo } from "../re
 import FoodService from "./FoodService/FoodService";
 import CustomerService from "./CustomerService/CustomerService";
 
-const adminService = new AdminService(adminRepo, personRepo);
+const adminService = new AdminService(adminRepo, personRepo, vendorRepo);
 const vendorService = new VendorService(vendorRepo);
 const customerService = new CustomerService(customerRepo, personRepo, foodRepo);
 const foodService = new FoodService(vendorRepo, foodRepo);

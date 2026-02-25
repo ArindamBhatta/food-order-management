@@ -1,74 +1,65 @@
-import { VendorDAO } from "../../../infrastructure/daos/VendorDAO";
 import { PersonDAO } from "../../../infrastructure/daos/PersonDAO";
-import VendorEntity from "../../entity/VendorEntity";
+import { AdminDAO } from "../../../infrastructure/daos/AdminDAO";
+import AdminEntity from "../../entity/AdminEntity";
 import IAdminRepo from "./AdminRepo.interface";
 import logger from "../../../infrastructure/logger/winston";
 
 export default class AdminRepo implements IAdminRepo {
-  private vendorDao: VendorDAO;
   private personDao: PersonDAO;
+  private adminDao: AdminDAO;
 
-  constructor(vendorDao: VendorDAO, personDao: PersonDAO) {
-    this.vendorDao = vendorDao;
+  constructor(personDao: PersonDAO, adminDao: AdminDAO) {
     this.personDao = personDao;
+    this.adminDao = adminDao;
   }
 
-  createVendor = async (vendor: VendorEntity): Promise<VendorEntity> => {
+  createAdmin = async (adminEntity: AdminEntity): Promise<AdminEntity> => {
     try {
-      // Step 1: Create Person first
-      const personData = {
-        fullName: vendor.ownerName!,
-        email: vendor.ownerEmail!,
-        phoneNumber: vendor.ownerPhone!,
-        password: vendor.ownerPhone!, // Placeholder? Wait, password should be passed in.
-        // Actually, AdminService should handle PersonEntity creation if we want to be clean.
-        // But for now, let's assume we pass what's needed.
-      };
-
-      // I'll assume the entity passed to createVendor already has what's needed for Person.
-      // But VendorEntity toRow() doesn't include password/salt.
-
-      // Let's rethink: Repo should receive simple params or Entities.
-      // If it receives VendorEntity, it should have the personId.
-
-      const rawData = vendor.toRow();
-      const savedRow = await this.vendorDao.create(rawData);
-      return VendorEntity.fromRow(savedRow);
+      const rawData = adminEntity.toRow();
+      const savedRow = await this.adminDao.create(rawData);
+      return AdminEntity.fromRow(savedRow);
     } catch (error) {
-      logger.error("Error in AdminRepo.createVendor:", error);
+      logger.error("Error in AdminRepo.createAdmin:", error);
       throw error;
     }
   };
 
-  getAllVendor = async (): Promise<VendorEntity[]> => {
+
+  findAdmin = async ({ adminId, email }: { adminId?: number; email?: string }): Promise<AdminEntity | null> => {
     try {
-      const rows = await this.vendorDao.getAll();
-      // This is problematic because we need person info for each vendor.
-      // For now, I'll return them without person info or join them.
-      return rows.map(row => VendorEntity.fromRow(row));
-    } catch (error) {
-      logger.error("Error in AdminRepo.getAllVendor:", error);
-      throw error;
-    }
-  };
+      let adminRow = null;
+      let personRow = null;
 
-  getVendorByID = async (vendorId: number): Promise<VendorEntity | null> => {
-    try {
-      const row = await this.vendorDao.getById(vendorId);
-      if (!row) return null;
+      if (email) {
+        personRow = await this.personDao.getByEmail(email);
+        if (personRow) {
+          adminRow = await this.adminDao.getByPersonId(personRow.personId);
+        }
+      } else if (adminId) {
+        adminRow = await this.adminDao.getById(adminId);
+        if (adminRow && adminRow.personId) {
+          personRow = await this.personDao.getById(adminRow.personId);
+        }
+      }
 
-      const personRow = row.personId ? await this.personDao.getById(row.personId) : null;
+      if (!adminRow || !personRow) return null;
 
-      return new VendorEntity({
-        ...row,
-        ownerName: personRow?.fullName,
-        ownerEmail: personRow?.email,
-        ownerPhone: personRow?.phoneNumber,
-        verified: personRow?.verified ?? false
+      return new AdminEntity({
+        adminId: adminRow.adminId,
+        personId: adminRow.personId as number,
+        role: adminRow.role || 'admin',
+        isActive: adminRow.isActive ?? true,
+        fullName: personRow.fullName,
+        email: personRow.email,
+        phoneNumber: personRow.phoneNumber,
+        password: personRow.password,
+        salt: personRow.salt,
       });
     } catch (error) {
-      logger.error(`Error in AdminRepo.getVendorByID for ID ${vendorId}:`, error);
+      logger.error("Error in AdminRepo.findAdmin:", error);
       throw error;
     }
   };
+
+
 }

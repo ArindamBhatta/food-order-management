@@ -246,3 +246,11 @@ export const cartItem = sqliteTable('cart_item', {
     customizationNotes: text('customization_notes'),
     addedAt: integer('added_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
+
+// Admin Table
+export const admin = sqliteTable('admin', {
+    adminId: integer('admin_id').primaryKey({ autoIncrement: true }),
+    personId: integer('person_id').references(() => person.personId),
+    role: text('role').default('admin'),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+});

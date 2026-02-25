@@ -1,9 +1,13 @@
-
 import IAdminController from "./AdminController.interface";
 import {
   CreateVendorDTO,
   VendorResponseDTO,
 } from "../../dto/interface/Vendor.dto";
+import {
+  AdminResponseDTO,
+  CreateAdminDTO,
+  LoginAdminDTO
+} from "../../dto/interface/Admin.dto";
 import { ControllerPayload } from "../../../constants";
 import logger from "../../../infrastructure/logger/winston";
 import IAdminService from "../../services/AdminService/AdminService.interface";
@@ -14,6 +18,35 @@ export default class AdminController implements IAdminController {
   constructor(adminService: IAdminService) {
     this.adminService = adminService;
   }
+
+  signUp = async (payload: ControllerPayload): Promise<{ admin: AdminResponseDTO; accessToken: string }> => {
+    try {
+      const adminDto = new CreateAdminDTO(payload.req.body);
+      const result = await this.adminService.adminSignUp(adminDto);
+      return {
+        admin: new AdminResponseDTO(result.admin),
+        accessToken: result.signature,
+      };
+    } catch (error: any) {
+      logger.error("Error in AdminController.signUp:", error);
+      throw error;
+    }
+  };
+
+  signIn = async (payload: ControllerPayload): Promise<{ admin: AdminResponseDTO; accessToken: string }> => {
+    try {
+      const loginDto = new LoginAdminDTO();
+      Object.assign(loginDto, payload.req.body);
+      const result = await this.adminService.adminLogin(loginDto);
+      return {
+        admin: new AdminResponseDTO(result.admin),
+        accessToken: result.signature,
+      };
+    } catch (error: any) {
+      logger.error("Error in AdminController.signIn:", error);
+      throw error;
+    }
+  };
 
   createVendor = async (
     payload: ControllerPayload
@@ -63,4 +96,8 @@ export default class AdminController implements IAdminController {
       throw error;
     }
   };
+
+
+
+
 }
