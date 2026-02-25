@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { AuthPayload } from "../daws/Auth.dto";
 import { Request } from "express";
+import { AuthPayload } from "../dto/Auth.dto";
 
 const API_SECRET = process.env.API_SECRET;
 

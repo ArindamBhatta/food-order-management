@@ -1,4 +1,3 @@
-import { VendorDAO } from "../../../infrastructure/daos/VendorDAO";
 import VendorEntity from "../../entity/VendorEntity";
 import IVendorService, { LoginResponse } from "./VendorService.interface";
 import VendorRepo from "../../repos/VendorRepo/VendorRepo";
@@ -12,11 +11,12 @@ import {
   LoginVendorDTO,
   VendorPayload,
 } from "../../dto/interface/Vendor.dto";
+import IVendorRepo from "../../repos/VendorRepo/VendorRepo.interface";
 
 export default class VendorService implements IVendorService {
-  private vendorRepo: VendorRepo;
+  private vendorRepo: IVendorRepo;
 
-  constructor(vendorRepo: VendorRepo) {
+  constructor(vendorRepo: IVendorRepo) {
     this.vendorRepo = vendorRepo;
   }
 
@@ -45,6 +45,7 @@ export default class VendorService implements IVendorService {
         _id: vendor.vendorId!.toString(),
         role: "vendor",
         email: vendor.ownerEmail!,
+        verified: vendor.verified,
       };
 
       const accessToken = generateAccessToken(authPayload);

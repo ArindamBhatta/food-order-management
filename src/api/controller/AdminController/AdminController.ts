@@ -1,4 +1,4 @@
-import AdminService from "../../services/AdminService/AdminService";
+
 import IAdminController from "./AdminController.interface";
 import {
   CreateVendorDTO,
@@ -6,11 +6,12 @@ import {
 } from "../../dto/interface/Vendor.dto";
 import { ControllerPayload } from "../../../constants";
 import logger from "../../../infrastructure/logger/winston";
+import IAdminService from "../../services/AdminService/AdminService.interface";
 
 export default class AdminController implements IAdminController {
-  private adminService: AdminService;
+  private adminService: IAdminService;
 
-  constructor(adminService: AdminService) {
+  constructor(adminService: IAdminService) {
     this.adminService = adminService;
   }
 
@@ -20,10 +21,11 @@ export default class AdminController implements IAdminController {
     try {
       const createVendorDTO = new CreateVendorDTO(payload.req.body);
       const vendor = await this.adminService.createVendor(createVendorDTO);
-      return new VendorResponseDTO(vendor);
-    } catch (error) {
+      const response = new VendorResponseDTO(vendor);
+      return response;
+    } catch (error: any) {
       logger.error("Error in AdminController.createVendor:", error);
-      throw new Error("Failed to create vendor");
+      throw error;
     }
   };
 
@@ -32,24 +34,33 @@ export default class AdminController implements IAdminController {
   ): Promise<VendorResponseDTO[]> => {
     try {
       const vendors = await this.adminService.getAllVendor();
-      return vendors.map((vendor) => new VendorResponseDTO(vendor));
-    } catch (error) {
+      const response: VendorResponseDTO[] = vendors.map((vendor) => new VendorResponseDTO(vendor));
+      return response;
+    } catch (error: any) {
       logger.error("Error in AdminController.getAllVendor:", error);
-      throw new Error("Failed to get vendors");
+      throw error;
     }
   };
 
   getVendorById = async (
     payload: ControllerPayload
   ): Promise<VendorResponseDTO> => {
-    const vendorId = parseInt(payload.req.params.id);
+    const { id } = payload.req.params;
+    if (typeof id !== 'string') {
+      throw new Error("Invalid vendor ID");
+    }
+    const vendorId: number = parseInt(id);
+
     try {
       const vendor = await this.adminService.getVendorByID(vendorId);
-      if (!vendor) throw new Error("Vendor not found");
-      return new VendorResponseDTO(vendor);
-    } catch (error) {
+      if (!vendor) {
+        throw new Error("Vendor not found");
+      }
+      const response = new VendorResponseDTO(vendor);
+      return response;
+    } catch (error: any) {
       logger.error("Error in AdminController.getVendorByID:", error);
-      throw new Error("Failed to get vendor by ID");
+      throw error;
     }
   };
 }

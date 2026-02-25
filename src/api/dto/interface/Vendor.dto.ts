@@ -46,4 +46,5 @@ export interface VendorPayload {
     _id: string;
     role: 'vendor';
     email: string;
+    verified: boolean;
 }

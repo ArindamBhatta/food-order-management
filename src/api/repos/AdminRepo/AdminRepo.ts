@@ -63,7 +63,8 @@ export default class AdminRepo implements IAdminRepo {
         ...row,
         ownerName: personRow?.fullName,
         ownerEmail: personRow?.email,
-        ownerPhone: personRow?.phoneNumber
+        ownerPhone: personRow?.phoneNumber,
+        verified: personRow?.verified ?? false
       });
     } catch (error) {
       logger.error(`Error in AdminRepo.getVendorByID for ID ${vendorId}:`, error);

@@ -22,6 +22,7 @@ export default class VendorEntity {
   private _salt?: string | null;
   private _accessToken?: string | null;
   private _refreshToken?: string | null;
+  private _verified: boolean;
 
   constructor(data: {
     vendorId?: number;
@@ -45,6 +46,7 @@ export default class VendorEntity {
     salt?: string | null;
     accessToken?: string | null;
     refreshToken?: string | null;
+    verified?: boolean;
   }) {
     this._vendorId = data.vendorId;
     this._personId = data.personId;
@@ -67,6 +69,7 @@ export default class VendorEntity {
     this._salt = data.salt;
     this._accessToken = data.accessToken;
     this._refreshToken = data.refreshToken;
+    this._verified = data.verified ?? false;
   }
 
   get vendorId() { return this._vendorId; }
@@ -90,7 +93,9 @@ export default class VendorEntity {
   get salt() { return this._salt; }
   get accessToken() { return this._accessToken; }
   get refreshToken() { return this._refreshToken; }
+  get verified() { return this._verified; }
 
+  //similar to formJson
   static fromRow(row: any): VendorEntity {
     return new VendorEntity({
       vendorId: row.vendorId,
@@ -109,7 +114,7 @@ export default class VendorEntity {
       totalReviews: row.totalReviews,
     });
   }
-
+  //similar to toJson()
   toRow() {
     return {
       personId: this._personId,

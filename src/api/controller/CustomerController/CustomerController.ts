@@ -7,82 +7,31 @@ import {
   OrderInputs
 } from "../../dto/interface/Customer.dto";
 import ICustomerController from "./CustomerController.interface";
-import CustomerService from "../../services/CustomerService/CustomerService";
-import { AuthPayload } from "../../dto/Auth.dto";
 import {
   generateAccessToken,
   generateRefreshToken,
 } from "../../utils/auth.utility";
+import ICustomerService from "../../services/CustomerService/CustomerService.interface";
 
 export default class CustomerController implements ICustomerController {
-  private customerService: CustomerService;
-  constructor(customerService: CustomerService) {
+  private customerService: ICustomerService;
+  constructor(customerService: ICustomerService) {
     this.customerService = customerService;
   }
 
   signUp = async (payload: ControllerPayload) => {
     try {
       const input = new CreateCustomerDTO(payload.req.body);
-      const { otp } = await this.customerService.signUp(input);
+      const result = await this.customerService.signUp(input);
 
-      return payload.res.status(201).json({
-        otp,
-        message: "Customer created, OTP sent. Please verify OTP to complete registration.",
-      });
-    } catch (error: any) {
-      return payload.res.status(500).json({
-        error: { message: error.message || "Customer signup failed" },
-      });
-    }
-  };
-
-  otpVerify = async (payload: ControllerPayload) => {
-    try {
-      const { otp, email, phone } = payload.req.body;
-
-      if (!email && !phone) {
-        return payload.res.status(400).json({
-          error: { message: "Email or phone number is required for OTP verification" },
-        });
-      }
-
-      if (!otp) {
-        return payload.res.status(400).json({
-          error: { message: "OTP is required" },
-        });
-      }
-
-      const result = await this.customerService.verifyOtp(
-        parseInt(otp),
-        email,
-        phone
-      );
-
-      if (!result.customer) {
-        return payload.res.status(400).json({
-          error: { message: "Invalid OTP or Expired" },
-        });
-      }
-
-      const authPayload: CustomerPayload = {
-        _id: result.customer.customerId!.toString(),
-        email: email || "", // This should come from person level
-        role: "customer" as const,
-        verified: true, // result from verifyOtp means it's verified
+      return {
+        customer: result.customer,
+        accessToken: result.signature,
+        message: "Customer created successfully.",
       };
-
-      const accessToken = generateAccessToken(authPayload);
-      const refreshToken = generateRefreshToken(authPayload);
-
-      return payload.res.status(200).json({
-        accessToken,
-        refreshToken,
-        email: authPayload.email,
-      });
     } catch (error: any) {
-      return payload.res.status(500).json({
-        error: { message: error.message || "OTP verification failed" },
-      });
+      console.error("Error in signUp:", error);
+      throw error;
     }
   };
 
@@ -91,15 +40,11 @@ export default class CustomerController implements ICustomerController {
       const input: CustomerLoginDTO = payload.req.body;
 
       if (!input.email && !input.phone) {
-        return payload.res.status(400).json({
-          error: { message: "Email or phone number is required for login" },
-        });
+        throw new Error("Email or phone number is required for login");
       }
 
       if (!input.password) {
-        return payload.res.status(400).json({
-          error: { message: "Password is required" },
-        });
+        throw new Error("Password is required");
       }
 
       const result = await this.customerService.signIn(
@@ -109,19 +54,16 @@ export default class CustomerController implements ICustomerController {
       );
 
       if (!result) {
-        return payload.res.status(401).json({
-          error: { message: "Invalid credentials" },
-        });
+        throw new Error("Invalid credentials");
       }
 
-      return payload.res.status(200).json({
+      return {
         accessToken: result.signature,
         signature: result.signature,
-      });
+      };
     } catch (error: any) {
-      return payload.res.status(500).json({
-        error: { message: error.message || "Sign-in failed" },
-      });
+      console.error("Error in signIn:", error);
+      throw error;
     }
   };
 
@@ -129,17 +71,14 @@ export default class CustomerController implements ICustomerController {
     try {
       const customer = payload.req.user;
       if (!customer || !customer._id) {
-        return payload.res.status(401).json({
-          error: { message: "User not authenticated" },
-        });
+        throw new Error("User not authenticated");
       }
 
       const profile = await this.customerService.getCustomerById(parseInt(customer._id));
-      return payload.res.status(200).json({ profile });
+      return { profile };
     } catch (error: any) {
-      return payload.res.status(500).json({
-        error: { message: error.message || "Operation failed" },
-      });
+      console.error("Error in profileDetails:", error);
+      throw error;
     }
   };
 
@@ -147,9 +86,7 @@ export default class CustomerController implements ICustomerController {
     try {
       const customer = payload.req.user;
       if (!customer || !customer._id) {
-        return payload.res.status(401).json({
-          error: { message: "User not authenticated" },
-        });
+        throw new Error("User not authenticated");
       }
 
       const input = new EditCustomerProfileInputs(payload.req.body);
@@ -158,22 +95,20 @@ export default class CustomerController implements ICustomerController {
         input
       );
 
-      return payload.res.status(200).json({
+      return {
         message: "Profile updated successfully",
         customer: updatedCustomer,
-      });
+      };
     } catch (error: any) {
-      return payload.res.status(500).json({
-        error: { message: error.message || "Operation failed" },
-      });
+      console.error("Error in addDetailsOfUser:", error);
+      throw error;
     }
   };
 
   addToWishlist = async (payload: ControllerPayload) => {
     const customer = payload.req.user;
-    if (!customer) {
-      return payload.res.status(401).json({ error: { message: "Unauthorized" } });
-    }
+    if (!customer) throw new Error("Unauthorized");
+
     const { foodDocId, unit } = payload.req.body;
     try {
       const updatedCart = await this.customerService.addToCart(
@@ -181,20 +116,22 @@ export default class CustomerController implements ICustomerController {
         parseInt(foodDocId),
         unit
       );
-      return payload.res.status(200).json({ cart: updatedCart });
+      return { cart: updatedCart };
     } catch (error: any) {
-      return payload.res.status(500).json({ error: { message: error.message || "Operation failed" } });
+      console.error("Error in addToWishlist:", error);
+      throw error;
     }
   };
 
   allWishlistFood = async (payload: ControllerPayload) => {
     const customer = payload.req.user;
-    if (!customer) return payload.res.status(401).json({ error: { message: "Unauthorized" } });
+    if (!customer) throw new Error("Unauthorized");
     try {
       const cart = await this.customerService.getCart(parseInt(customer._id));
-      return payload.res.status(200).json({ cart });
+      return { cart };
     } catch (error: any) {
-      return payload.res.status(500).json({ error: { message: error.message || "Failed" } });
+      console.error("Error in allWishlistFood:", error);
+      throw error;
     }
   };
 }

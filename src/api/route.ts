@@ -34,7 +34,6 @@ const routes: RouteMap = {
     "create-vendor": [auth(["admin"]), adminController.createVendor], // 🛡 admin-only
     "vendor-login": vendorController.vendorLogin,
     "create-customer": customerController.signUp,
-    "otp-validation": customerController.otpVerify,
     "customer-login": customerController.signIn,
     "add-food": [
       auth(["vendor"]),

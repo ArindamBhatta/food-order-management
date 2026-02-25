@@ -3,7 +3,7 @@ import { adminService, vendorService, customerService, foodService } from "../se
 import VendorController from "./VendorController/VendorController";
 import CustomerController from "./CustomerController/CustomerController";
 
-const adminController = new AdminController(adminService);
+const adminController = new AdminController(adminService); // Dependency Injection
 const vendorController = new VendorController(vendorService, foodService);
 const customerController = new CustomerController(customerService);
 

@@ -1,7 +1,3 @@
-import {
-  CreateCustomerDTO,
-  EditCustomerProfileInputs,
-} from "../../dto/interface/Customer.dto";
 import ICustomerService from "./CustomerService.interface";
 import CustomerRepo from "../../repos/CustomerRepo/CustomerRepo";
 import PersonRepo from "../../repos/PersonRepo/PersonRepo";
@@ -14,7 +10,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "../../utils/auth.utility";
-import { GenerateOpt } from "../../utils/OtpValidation.utility";
+import { CreateCustomerDTO, EditCustomerProfileInputs } from "../../dto/interface/Customer.dto";
 
 export default class CustomerService implements ICustomerService {
   private customerRepo: CustomerRepo;
@@ -33,14 +29,13 @@ export default class CustomerService implements ICustomerService {
 
   signUp = async (
     input: CreateCustomerDTO
-  ): Promise<{ customer: CustomerEntity; otp: number }> => {
+  ): Promise<{ customer: CustomerEntity; signature: string }> => {
     try {
       const existing = await this.customerRepo.existingCustomer(input.email);
       if (existing) throw new Error("Customer already exists");
 
       const salt = await generateSalt();
       const hashedPassword = await hashPassword(input.password, salt);
-      const { otp, expiry } = GenerateOpt();
 
       const person = new PersonEntity({
         fullName: input.email.split("@")[0],
@@ -48,9 +43,7 @@ export default class CustomerService implements ICustomerService {
         phoneNumber: input.phone,
         password: hashedPassword,
         salt: salt,
-        otp: otp,
-        otpExpiry: expiry,
-        verified: false,
+        verified: true,
       });
 
       const savedPerson = await this.personRepo.create(person);
@@ -62,37 +55,18 @@ export default class CustomerService implements ICustomerService {
 
       const savedCustomer = await this.customerRepo.createCustomer(customer);
 
-      return { customer: savedCustomer, otp };
+      const signature = generateAccessToken({
+        _id: savedCustomer.customerId!.toString(),
+        email: savedPerson.email,
+        verified: savedPerson.verified,
+        role: "customer",
+      });
+
+      return { customer: savedCustomer, signature };
     } catch (error) {
       console.error("Error in CustomerService.signUp:", error);
       throw error;
     }
-  };
-
-  verifyOtp = async (
-    otp: number,
-    email?: string,
-    phone?: string,
-    customerId?: number
-  ) => {
-    const customer = await this.customerRepo.verifyOtp(
-      otp,
-      email,
-      phone,
-      customerId
-    );
-    if (!customer || !customer.personId) return { customer: null };
-
-    const person = await this.personRepo.getById(customer.personId);
-    if (!person) return { customer: null };
-
-    const signature = generateAccessToken({
-      _id: customer.customerId!.toString(),
-      email: person.email,
-      verified: person.verified,
-      role: "customer",
-    });
-    return { customer, signature };
   };
 
   signIn = async (password: string, email?: string, phone?: string) => {

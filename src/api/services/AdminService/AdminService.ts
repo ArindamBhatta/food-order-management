@@ -1,17 +1,18 @@
-import AdminRepo from "../../repos/AdminRepo/AdminRepo";
-import PersonRepo from "../../repos/PersonRepo/PersonRepo";
 import VendorEntity from "../../entity/VendorEntity";
 import PersonEntity from "../../entity/PersonEntity";
 import IAdminService from "./AdminService.interface";
 import { generateSalt, hashPassword } from "../../utils/auth.utility";
 import logger from "../../../infrastructure/logger/winston";
 import { CreateVendorDTO } from "../../dto/interface/Vendor.dto";
+import IAdminRepo from "../../repos/AdminRepo/AdminRepo.interface";
+import IPersonRepo from "../../repos/PersonRepo/PersonRepo.interface";
+
 
 export default class AdminService implements IAdminService {
-  private adminRepo: AdminRepo;
-  private personRepo: PersonRepo;
+  private adminRepo: IAdminRepo;
+  private personRepo: IPersonRepo;
 
-  constructor(adminRepo: AdminRepo, personRepo: PersonRepo) {
+  constructor(adminRepo: IAdminRepo, personRepo: IPersonRepo) {
     this.adminRepo = adminRepo;
     this.personRepo = personRepo;
   }
@@ -28,10 +29,10 @@ export default class AdminService implements IAdminService {
         phoneNumber: vendorDto.phone,
         password: hashedPassword,
         salt: salt,
-        verified: true, // Vendors are created by Admin, assume verified
+        verified: true,
       });
 
-      const savedPerson = await this.personRepo.create(person);
+      const savedPerson: PersonEntity = await this.personRepo.create(person);
 
       // Step 2: Create Vendor linked to Person
       const vendor = new VendorEntity({
@@ -40,13 +41,15 @@ export default class AdminService implements IAdminService {
         isActive: true,
       });
 
-      const savedVendor = await this.adminRepo.createVendor(vendor);
+      const savedVendor: VendorEntity = await this.adminRepo.createVendor(vendor);
 
       return new VendorEntity({
-        ...savedVendor,
+        ...savedVendor.toRow(),
+        vendorId: savedVendor.vendorId,
         ownerName: savedPerson.fullName,
         ownerEmail: savedPerson.email,
-        ownerPhone: savedPerson.phoneNumber
+        ownerPhone: savedPerson.phoneNumber,
+        verified: savedPerson.verified
       });
     } catch (error) {
       console.error("Error in AdminService.createVendor:", error);

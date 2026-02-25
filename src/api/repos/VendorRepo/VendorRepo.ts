@@ -48,6 +48,7 @@ export default class VendorRepo implements IVendorRepo {
         salt: personRow.salt,
         accessToken: personRow.accessToken,
         refreshToken: personRow.refreshToken,
+        verified: personRow.verified ?? false,
       });
     } catch (error) {
       console.error("Error in VendorRepo.findVendor:", error);
@@ -95,7 +96,8 @@ export default class VendorRepo implements IVendorRepo {
         ...updatedVendorRow,
         ownerName: personRow.fullName,
         ownerEmail: personRow.email,
-        ownerPhone: personRow.phoneNumber
+        ownerPhone: personRow.phoneNumber,
+        verified: personRow.verified ?? false
       });
     } catch (error) {
       console.error("Error in VendorRepo.updateOwnerProfile:", error);
@@ -122,7 +124,8 @@ export default class VendorRepo implements IVendorRepo {
         ...updatedRow,
         ownerName: personRow?.fullName,
         ownerEmail: personRow?.email,
-        ownerPhone: personRow?.phoneNumber
+        ownerPhone: personRow?.phoneNumber,
+        verified: personRow?.verified ?? false
       });
     } catch (error) {
       console.error("Error in VendorRepo.updateShopImage:", error);

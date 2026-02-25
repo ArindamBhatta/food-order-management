@@ -52,8 +52,8 @@ export default (): IRouter => {
 };
 
 const callService = async (method: HttpMethod, req: Request, res: Response) => {
-  const apiVersion: string = req.params.apiversion || ApiVersion.V1;
-  const serviceName: string = req.params.service;
+  const apiVersion: string = (req.params.apiversion as string) || ApiVersion.V1;
+  const serviceName: string = req.params.service as string;
   console.log("callService", { method, serviceName });
 
   let serviceDef: RouteDefinition | undefined;
@@ -101,21 +101,24 @@ const callService = async (method: HttpMethod, req: Request, res: Response) => {
       }
       //2nd  Execute controller
       result = await controller(payload);
-      // if no middleware present
-    } else {
-      const controller = serviceDef as any;
-      result = await controller(payload);
     }
+
+    if (result !== undefined && !res.headersSent) {
+      return res.status(200).json({
+        success: true,
+        ...(typeof result === 'object' ? result : { data: result })
+      });
+    }
+
     return;
   } catch (error: any) {
     console.error("callService error:", error);
-    if (error instanceof BusinessLogicError) {
-      return res
-        .status(error.statusCode)
-        .json({ success: false, message: error.message });
-    }
+    const statusCode = error.statusCode || 500;
     return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+      .status(statusCode)
+      .json({
+        success: false,
+        message: error.message || "Internal server error"
+      });
   }
 };
