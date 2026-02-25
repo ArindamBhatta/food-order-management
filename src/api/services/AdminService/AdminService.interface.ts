@@ -1,8 +1,8 @@
+import VendorEntity from "../../entity/VendorEntity";
 import { CreateVendorDTO } from "../../dto/interface/Vendor.dto";
-import { VendorDoc } from "../../models";
 
 export default interface IAdminService {
-  createVendor: (dto: CreateVendorDTO) => Promise<VendorDoc>;
-  getVendorByID: (vendorId: string) => Promise<VendorDoc>;
-  getAllVendor: () => Promise<VendorDoc[]>;
+  createVendor(vendorDto: CreateVendorDTO): Promise<VendorEntity>;
+  getVendorByID(vendorId: number): Promise<VendorEntity | null>;
+  getAllVendor(): Promise<VendorEntity[]>;
 }

@@ -1,11 +1,10 @@
-import { CreateFoodInput } from "../../dto/interface/Food.dto";
-import { FoodDoc } from "../../models";
+import FoodEntity from "../../entity/FoodEntity";
 
 export default interface IFoodRepo {
   addFood(
-    vendorId: string,
-    input: CreateFoodInput,
+    vendorId: number,
+    input: any,
     imageUrls: string[]
-  ): Promise<FoodDoc>;
-  getFoods(vendorId: string): Promise<FoodDoc[]>;
+  ): Promise<FoodEntity>;
+  getFoods(vendorId: number): Promise<FoodEntity[]>;
 }

@@ -2,9 +2,12 @@ import {
   CreateCustomerDTO,
   EditCustomerProfileInputs,
 } from "../../dto/interface/Customer.dto";
-import { CustomerDoc } from "../../models/CustomerModel";
 import ICustomerService from "./CustomerService.interface";
 import CustomerRepo from "../../repos/CustomerRepo/CustomerRepo";
+import PersonRepo from "../../repos/PersonRepo/PersonRepo";
+import FoodRepo from "../../repos/FoodRepo/FoodRepo";
+import PersonEntity from "../../entity/PersonEntity";
+import CustomerEntity from "../../entity/CustomerEntity";
 import {
   generateAccessToken,
   generateSalt,
@@ -12,55 +15,65 @@ import {
   verifyPassword,
 } from "../../utils/auth.utility";
 import { GenerateOpt } from "../../utils/OtpValidation.utility";
-import { Types } from "mongoose";
-import { Food } from "../../models";
 
 export default class CustomerService implements ICustomerService {
   private customerRepo: CustomerRepo;
+  private personRepo: PersonRepo;
+  private foodRepo: FoodRepo;
 
-  constructor(customerRepo: CustomerRepo) {
+  constructor(
+    customerRepo: CustomerRepo,
+    personRepo: PersonRepo,
+    foodRepo: FoodRepo
+  ) {
     this.customerRepo = customerRepo;
+    this.personRepo = personRepo;
+    this.foodRepo = foodRepo;
   }
 
   signUp = async (
     input: CreateCustomerDTO
-  ): Promise<{ customer: CustomerDoc; otp: number }> => {
-    //Hash password with salt
-    const salt = await generateSalt();
-    const hashedPassword = await hashPassword(input.password, salt);
+  ): Promise<{ customer: CustomerEntity; otp: number }> => {
+    try {
+      const existing = await this.customerRepo.existingCustomer(input.email);
+      if (existing) throw new Error("Customer already exists");
 
-    // Step 1: Check duplicate customer already exists
-    const existing = await this.customerRepo.existingCustomer(input.email);
-    if (existing) throw new Error("Customer already exists");
+      const salt = await generateSalt();
+      const hashedPassword = await hashPassword(input.password, salt);
+      const { otp, expiry } = GenerateOpt();
 
-    // Step 2: Generate OTP
-    const { otp, expiry } = GenerateOpt();
+      const person = new PersonEntity({
+        fullName: input.email.split("@")[0],
+        email: input.email,
+        phoneNumber: input.phone,
+        password: hashedPassword,
+        salt: salt,
+        otp: otp,
+        otpExpiry: expiry,
+        verified: false,
+      });
 
-    // Step 4: Save customer
-    const customer = await this.customerRepo.createCustomer({
-      email: input.email,
-      password: hashedPassword,
-      salt,
-      phone: input.phone,
-      otp,
-      otp_expiry: expiry,
-      firstName: "",
-      lastName: "",
-      address: "",
-      verified: false,
-      lat: 0,
-      lng: 0,
-      orders: [],
-    });
+      const savedPerson = await this.personRepo.create(person);
 
-    return { customer, otp };
+      const customer = new CustomerEntity({
+        personId: savedPerson.personId,
+        isActive: true,
+      });
+
+      const savedCustomer = await this.customerRepo.createCustomer(customer);
+
+      return { customer: savedCustomer, otp };
+    } catch (error) {
+      console.error("Error in CustomerService.signUp:", error);
+      throw error;
+    }
   };
 
   verifyOtp = async (
     otp: number,
     email?: string,
     phone?: string,
-    customerId?: string
+    customerId?: number
   ) => {
     const customer = await this.customerRepo.verifyOtp(
       otp,
@@ -68,82 +81,72 @@ export default class CustomerService implements ICustomerService {
       phone,
       customerId
     );
-    if (!customer) return { customer: null };
+    if (!customer || !customer.personId) return { customer: null };
+
+    const person = await this.personRepo.getById(customer.personId);
+    if (!person) return { customer: null };
+
     const signature = generateAccessToken({
-      _id: (customer._id as Types.ObjectId).toString(),
-      email: customer.email,
-      verified: customer.verified,
+      _id: customer.customerId!.toString(),
+      email: person.email,
+      verified: person.verified,
       role: "customer",
     });
     return { customer, signature };
   };
 
   signIn = async (password: string, email?: string, phone?: string) => {
-    const customer = await this.customerRepo.existingCustomer(email, phone);
-    if (!customer) return null;
-    const isPasswordValid = await verifyPassword(
-      password,
-      customer.password,
-      customer.salt
-    );
-    if (!isPasswordValid) return null;
-    const signature = generateAccessToken({
-      _id: (customer._id as Types.ObjectId).toString(),
-      email: customer.email,
-      verified: customer.verified,
-      role: "customer",
-    });
-    return { customer, signature };
+    try {
+      const customer = await this.customerRepo.existingCustomer(email, phone);
+      if (!customer || !customer.personId) return null;
+
+      const person = await this.personRepo.getById(customer.personId);
+      if (!person || !person.password || !person.salt) return null;
+
+      const isPasswordValid = await verifyPassword(
+        password,
+        person.password,
+        person.salt
+      );
+      if (!isPasswordValid) return null;
+
+      const signature = generateAccessToken({
+        _id: customer.customerId!.toString(),
+        email: person.email,
+        verified: person.verified,
+        role: "customer",
+      });
+
+      return { customer, signature };
+    } catch (error) {
+      console.error("Error in CustomerService.signIn:", error);
+      throw error;
+    }
   };
 
-  requestOtp = async (email?: string, phone?: string) => {
-    const customer = await this.customerRepo.existingCustomer(email, phone);
-    if (!customer) return null;
-    const { otp, expiry } = GenerateOpt();
-    customer.otp = otp;
-    customer.otp_expiry = expiry;
-    await customer.save();
-    return { customer };
-  };
-
-  getCustomerById = async (customerId: string) => {
-    const customer = await this.customerRepo.existingCustomer(
-      undefined,
-      undefined,
-      customerId
-    );
-    return customer;
+  getCustomerById = async (id: number) => {
+    return await this.customerRepo.existingCustomer(undefined, undefined, id);
   };
 
   updateProfile = async (
-    customerId: string,
+    customerId: number,
     input: EditCustomerProfileInputs
   ) => {
-    const customer = await this.customerRepo.existingCustomer(
-      undefined,
-      undefined,
-      customerId
-    );
-    if (!customer) return null;
-    customer.firstName = input.firstName || customer.firstName;
-    customer.lastName = input.lastName || customer.lastName;
-    customer.address = input.address || customer.address;
-    await customer.save();
+    const customer = await this.customerRepo.existingCustomer(undefined, undefined, customerId);
+    if (!customer || !customer.personId) return null;
+
+    await this.personRepo.update(customer.personId, {
+      fullName: input.firstName + " " + input.lastName,
+    });
+
     return customer;
   };
 
-  addToCart = async (customerId: string, foodDocId: string, unit: number) => {
-    const food = await Food.findById(foodDocId);
-    if (!food) return null;
-    // Call repo to update cart
-    return await this.customerRepo.addToCart(customerId, foodDocId, unit);
+  addToCart = async (customerId: number, foodId: number, unit: number) => {
+    return await this.customerRepo.addToCart(customerId, foodId, unit);
   };
 
-  getCart = async (customerId: string) => {
+  getCart = async (customerId: number) => {
     return await this.customerRepo.getCart(customerId);
-  };
-
-  removeFromCart = async (customerId: string, foodDocId: string) => {
-    return await this.customerRepo.removeFromCart(customerId, foodDocId);
   };
 }

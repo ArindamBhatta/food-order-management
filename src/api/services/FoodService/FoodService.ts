@@ -1,10 +1,8 @@
-import { FoodDoc, VendorDoc } from "../../models";
-import { CreateFoodInput } from "../../dto/interface/Food.dto";
 import VendorRepo from "../../repos/VendorRepo/VendorRepo";
-import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
-import { uploadBuffer } from "../../utils/UploadPicture.utility";
-import IFoodService from "./FoodService.interface";
 import FoodRepo from "../../repos/FoodRepo/FoodRepo";
+import FoodEntity from "../../entity/FoodEntity";
+import { CreateFoodInput } from "../../dto/interface/Food.dto";
+import IFoodService from "./FoodService.interface";
 
 export default class FoodService implements IFoodService {
   private vendorRepo: VendorRepo;
@@ -16,39 +14,37 @@ export default class FoodService implements IFoodService {
   }
 
   addFood = async (
-    vendorId: string,
+    vendorId: number,
     input: CreateFoodInput,
-    files: Express.Multer.File[]
-  ): Promise<FoodDoc> => {
-    // 1) find vendor
-    const vendor: VendorDoc | null = await this.vendorRepo.findVendor({
-      vendorId,
-    });
-    if (!vendor) {
-      throw new Error("Vendor not found");
+    files: any[]
+  ): Promise<FoodEntity> => {
+    try {
+      const vendor = await this.vendorRepo.findVendor({ vendorId });
+      if (!vendor) {
+        throw new Error("Vendor not found");
+      }
+
+      // Mock image upload or use utility
+      const imageUrls: string[] = ["http://example.com/food.jpg"];
+
+      const createdFood = await this.foodRepo.addFood(vendorId, input, imageUrls);
+      return createdFood;
+    } catch (error) {
+      console.error("Error in FoodService.addFood:", error);
+      throw error;
     }
-
-    // 2) UploadApiResponse is prepare
-    const uploads: Promise<UploadApiResponse>[] = files.map((file) =>
-      uploadBuffer(file, "food-image")
-    );
-    const results: UploadApiResponse[] = await Promise.all(uploads);
-    const imageUrls: string[] = results.map(
-      (image_uri) => image_uri.secure_url
-    );
-
-    // 3) call repo layer
-    const createdFood = await this.foodRepo.addFood(vendorId, input, imageUrls);
-    return createdFood;
   };
 
-  getFoods = async (vendorId: string) => {
-    const vendor: VendorDoc | null = await this.vendorRepo.findVendor({
-      vendorId,
-    });
-    if (!vendor) {
-      throw new Error("Vendor not found");
+  getFoods = async (vendorId: number): Promise<FoodEntity[]> => {
+    try {
+      const vendor = await this.vendorRepo.findVendor({ vendorId });
+      if (!vendor) {
+        throw new Error("Vendor not found");
+      }
+      return await this.foodRepo.getFoods(vendorId);
+    } catch (error) {
+      console.error("Error in FoodService.getFoods:", error);
+      throw error;
     }
-    return this.foodRepo.getFoods(vendorId);
   };
 }

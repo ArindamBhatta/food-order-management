@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import { AuthPayload } from "../dto/Auth.dto";
+import { AuthPayload } from "../daws/Auth.dto";
 import { validateAccessToken } from "../utils/auth.utility";
 
 //Express request body don't have user property so we are adding it here

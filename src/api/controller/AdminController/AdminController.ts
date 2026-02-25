@@ -1,4 +1,3 @@
-import { Request, Response } from "express";
 import AdminService from "../../services/AdminService/AdminService";
 import IAdminController from "./AdminController.interface";
 import {
@@ -6,7 +5,6 @@ import {
   VendorResponseDTO,
 } from "../../dto/interface/Vendor.dto";
 import { ControllerPayload } from "../../../constants";
-import { VendorDoc } from "../../models";
 import logger from "../../../infrastructure/logger/winston";
 
 export default class AdminController implements IAdminController {
@@ -20,19 +18,9 @@ export default class AdminController implements IAdminController {
     payload: ControllerPayload
   ): Promise<VendorResponseDTO> => {
     try {
-      // step 1: - take the request body from frontend and create a instance of CreateVendorDTO
-      const createVendorDTO: CreateVendorDTO = new CreateVendorDTO(
-        payload.req.body
-      );
-
-      // step 2: - call service layer or logic layer pass the dto instance
-      const vendor: VendorDoc = await this.adminService.createVendor(
-        createVendorDTO
-      );
-
-      // step 3: - convert to response dto to exclude sensitive data
-      const vendorResponse: VendorResponseDTO = new VendorResponseDTO(vendor);
-      return new VendorResponseDTO(vendorResponse);
+      const createVendorDTO = new CreateVendorDTO(payload.req.body);
+      const vendor = await this.adminService.createVendor(createVendorDTO);
+      return new VendorResponseDTO(vendor);
     } catch (error) {
       logger.error("Error in AdminController.createVendor:", error);
       throw new Error("Failed to create vendor");
@@ -43,13 +31,8 @@ export default class AdminController implements IAdminController {
     payload: ControllerPayload
   ): Promise<VendorResponseDTO[]> => {
     try {
-      const vendors: VendorDoc[] = await this.adminService.getAllVendor();
-
-      const vendorResponse: VendorResponseDTO[] = vendors.map(
-        (vendor) => new VendorResponseDTO(vendor)
-      );
-
-      return vendorResponse;
+      const vendors = await this.adminService.getAllVendor();
+      return vendors.map((vendor) => new VendorResponseDTO(vendor));
     } catch (error) {
       logger.error("Error in AdminController.getAllVendor:", error);
       throw new Error("Failed to get vendors");
@@ -59,14 +42,11 @@ export default class AdminController implements IAdminController {
   getVendorById = async (
     payload: ControllerPayload
   ): Promise<VendorResponseDTO> => {
-    const vendorId: string = payload.req.params.id;
-
+    const vendorId = parseInt(payload.req.params.id);
     try {
-      const vendor: VendorDoc = await this.adminService.getVendorByID(vendorId);
-
-      const vendorResponse: VendorResponseDTO = new VendorResponseDTO(vendor);
-
-      return new VendorResponseDTO(vendorResponse);
+      const vendor = await this.adminService.getVendorByID(vendorId);
+      if (!vendor) throw new Error("Vendor not found");
+      return new VendorResponseDTO(vendor);
     } catch (error) {
       logger.error("Error in AdminController.getVendorByID:", error);
       throw new Error("Failed to get vendor by ID");

@@ -1,65 +1,49 @@
-import { Food, FoodDoc, Vendor, VendorDoc } from "../../models";
-import { CreateFoodInput } from "../../dto/interface/Food.dto";
+import { FoodDAO } from "../../../infrastructure/daos/FoodDAO";
+import { VendorDAO } from "../../../infrastructure/daos/VendorDAO";
+import FoodEntity from "../../entity/FoodEntity";
 import IFoodRepo from "./FoodRepo.interface";
 
 export default class FoodRepo implements IFoodRepo {
-  private foodDb: typeof Food;
-  private vendorDb: typeof Vendor;
+  private foodDao: FoodDAO;
+  private vendorDao: VendorDAO;
 
-  constructor(foodDb: typeof Food, vendorDb: typeof Vendor) {
-    this.foodDb = foodDb;
-    this.vendorDb = vendorDb;
+  constructor(foodDao: FoodDAO, vendorDao: VendorDAO) {
+    this.foodDao = foodDao;
+    this.vendorDao = vendorDao;
   }
 
   addFood = async (
-    vendorId: string,
-    input: CreateFoodInput,
+    vendorId: number,
+    input: any,
     imageUrls: string[]
-  ): Promise<FoodDoc> => {
+  ): Promise<FoodEntity> => {
     try {
-      // create food first
-      const createdFood = await this.foodDb.create({
+      // Create food
+      const rawData = {
         vendorId,
-        name: input.name,
-        description: input.description,
-        category: input.category,
-        foodType: input.foodType,
-        readyTime: input.readyTime,
-        images: imageUrls,
+        foodName: input.name,
+        foodDescription: input.description,
+        categoryId: input.categoryId, // assuming input has numeric categoryId
         price: input.price,
-        rating: 0,
-      });
+        foodImageUrl: imageUrls[0], // Store first image as URL for now
+        // other fields...
+      };
 
-      // link food to vendor
-      const vendor: VendorDoc | null = await this.vendorDb.findById(vendorId);
-      if (!vendor) {
-        throw new Error("Vendor not found for linking food");
-      }
-      vendor.foods.push(createdFood);
-      await vendor.save();
-
-      return createdFood;
+      const savedRow = await this.foodDao.create(rawData);
+      return FoodEntity.fromRow(savedRow);
     } catch (error) {
       console.error("Error in FoodRepo.addFood:", error);
-      throw new Error("Database error occurred");
+      throw error;
     }
   };
 
-  /* 
-? Storing food IDs in the vendor document:
-  Useful for fast lookups or if you want to quickly get all food IDs for a vendor without querying the food collection.
-  Can lead to data duplication and the risk of inconsistency (e.g., if a food is deleted but its ID remains in the vendor's array).
-? Using only the vendorId in food documents:
-  More normalized, less duplication.
-  You can always find all foods for a vendor with a query like find({ vendorId }).
-  */
-  getFoods = async (vendorId: string): Promise<FoodDoc[]> => {
+  getFoods = async (vendorId: number): Promise<FoodEntity[]> => {
     try {
-      const foods = await this.foodDb.find({ vendorId });
-      return foods as FoodDoc[];
+      const rows = await this.foodDao.getByVendorId(vendorId);
+      return rows.map(row => FoodEntity.fromRow(row));
     } catch (error) {
       console.error("Error in FoodRepo.getFoods:", error);
-      throw new Error("Database error occurred");
+      throw error;
     }
   };
 }

@@ -1,11 +1,11 @@
+import FoodEntity from "../../entity/FoodEntity";
 import { CreateFoodInput } from "../../dto/interface/Food.dto";
-import { FoodDoc } from "../../models";
 
 export default interface IFoodService {
   addFood(
-    vendorId: string,
+    vendorId: number,
     input: CreateFoodInput,
-    files: Express.Multer.File[]
-  ): Promise<FoodDoc>;
-  getFoods(vendorId: string): Promise<FoodDoc[]>;
+    files: any[]
+  ): Promise<FoodEntity>;
+  getFoods(vendorId: number): Promise<FoodEntity[]>;
 }

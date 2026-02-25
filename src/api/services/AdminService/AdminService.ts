@@ -1,10 +1,7 @@
 import AdminRepo from "../../repos/AdminRepo/AdminRepo";
-import { VendorDoc } from "../../models";
+import VendorEntity from "../../entity/VendorEntity";
 import IAdminService from "./AdminService.interface";
-
 import { generateSalt, hashPassword } from "../../utils/auth.utility";
-import { ICreateVendorRepoParams } from "../../repos/AdminRepo/AdminRepo.interface";
-import { BusinessLogicError } from "../../utils/Error";
 import logger from "../../../infrastructure/logger/winston";
 import { CreateVendorDTO } from "../../dto/interface/Vendor.dto";
 
@@ -14,77 +11,44 @@ export default class AdminService implements IAdminService {
   constructor(adminRepo: AdminRepo) {
     this.adminRepo = adminRepo;
   }
-  //
-  createVendor = async (vendorDto: CreateVendorDTO): Promise<VendorDoc> => {
+
+  createVendor = async (vendorDto: CreateVendorDTO): Promise<VendorEntity> => {
     try {
-      // Generate a salt
-      const salt: string = await generateSalt();
+      const salt = await generateSalt();
+      const hashedPassword = await hashPassword(vendorDto.password, salt);
 
-      // start hashing
-      const hashedPassword: string = await hashPassword(
-        vendorDto.password,
-        salt
-      );
-
-      // create vendor data for repository who communicate with database
-      const vendorData: ICreateVendorRepoParams = {
-        name: vendorDto.name,
-        address: vendorDto.address,
-        pincode: vendorDto.pincode,
-        foodType: vendorDto.foodType,
-        email: vendorDto.email,
-        password: hashedPassword,
+      const vendor = new VendorEntity({
+        vendorName: vendorDto.name,
         ownerName: vendorDto.ownerName,
-        phone: vendorDto.phone,
-        salt,
-      };
-      //now pass the create vendor data to repository
-      const vendor: VendorDoc = await this.adminRepo.createVendor(vendorData);
+        ownerEmail: vendorDto.email,
+        ownerPhone: vendorDto.phone,
+        password: hashedPassword,
+        salt: salt,
+        // address and other fields could be processed here
+      });
 
-      if (!vendor) {
-        throw new Error("Failed to create vendor");
-      }
-
-      return vendor;
+      const savedVendor = await this.adminRepo.createVendor(vendor);
+      return savedVendor;
     } catch (error) {
       console.error("Error in AdminService.createVendor:", error);
-      throw error; // Re-throw to be handled by the controller
+      throw error;
     }
   };
 
-  getAllVendor = async (): Promise<VendorDoc[]> => {
+  getAllVendor = async (): Promise<VendorEntity[]> => {
     try {
-      const vendors: VendorDoc[] = await this.adminRepo.getAllVendor();
-
-      if (!vendors) {
-        throw new BusinessLogicError("Vendors not found", 404);
-      }
-
-      return vendors;
+      return await this.adminRepo.getAllVendor();
     } catch (error) {
       logger.error("Error in AdminService.getAllVendor:", error);
       throw error;
     }
   };
 
-  getVendorByID = async (vendorId: string): Promise<VendorDoc> => {
+  getVendorByID = async (vendorId: number): Promise<VendorEntity | null> => {
     try {
-      if (!vendorId?.trim()) {
-        throw new BusinessLogicError("Vendor ID is required");
-      }
-
-      const vendor: VendorDoc = await this.adminRepo.getVendorByID(vendorId);
-
-      if (!vendor) {
-        throw new BusinessLogicError("Vendor not found", 404);
-      }
-
-      return vendor;
+      return await this.adminRepo.getVendorByID(vendorId);
     } catch (error) {
-      logger.error(
-        `Error in AdminService.getVendorByID for ID ${vendorId}:`,
-        error
-      );
+      logger.error(`Error in AdminService.getVendorByID for ID ${vendorId}:`, error);
       throw error;
     }
   };
