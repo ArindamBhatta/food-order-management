@@ -22,7 +22,7 @@ export default (): IRouter => {
 
   // Route for GET requests with ID parameter
   router.get(
-    "/:apiversion/:service/:id?",
+    "/:apiversion/:service/:action?",
     ...getMWs,
     async (req: Request, res: Response) => {
       await callService(HttpMethod.GET, req, res);
@@ -31,7 +31,7 @@ export default (): IRouter => {
 
   // Route for POST requests
   router.post(
-    "/:apiversion/:service",
+    "/:apiversion/:service/:action?",
     ...postMWs,
     async (req: Request, res: Response) => {
       await callService(HttpMethod.POST, req, res);
@@ -40,7 +40,7 @@ export default (): IRouter => {
 
   // Route for PATCH requests
   router.patch(
-    "/:apiversion/:service/:id?",
+    "/:apiversion/:service/:action?",
     ...patchMWs,
     async (req: Request, res: Response) => {
       await callService(HttpMethod.PATCH, req, res);
@@ -52,8 +52,16 @@ export default (): IRouter => {
 
 const callService = async (method: HttpMethod, req: Request, res: Response) => {
   const apiVersion: string = (req.params.apiversion as string) || ApiVersion.V1;
-  const serviceName: string = req.params.service as string;
-  console.log("callService", { method, serviceName });
+  const servicePart: string = req.params.service as string;
+  const actionPart: string = req.params.action as string;
+
+  // Combine segments if action exists and is not a number (which would be an id)
+  let serviceName = servicePart;
+  if (actionPart && isNaN(Number(actionPart))) {
+    serviceName = `${servicePart}-${actionPart}`;
+  }
+
+  console.log("callService", { method, apiVersion, serviceName, actionPart });
 
   let serviceDef: RouteDefinition | undefined;
 
@@ -63,9 +71,13 @@ const callService = async (method: HttpMethod, req: Request, res: Response) => {
       serviceDef = routes[method]?.[serviceName];
       break;
     default:
-      return res
-        .status(400)
-        .json({ success: false, message: "Unsupported API version" });
+      // Try combining segments (e.g., /customer/login -> customer-login)
+      serviceDef = routes[method]?.[`${apiVersion}-${serviceName}`];
+      if (!serviceDef) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Service not found" });
+      }
   }
 
   if (!serviceDef) {
@@ -100,6 +112,9 @@ const callService = async (method: HttpMethod, req: Request, res: Response) => {
       }
       //2nd  Execute controller
       result = await controller(payload);
+    } else {
+      // It's a single controller function
+      result = await serviceDef(payload);
     }
 
     if (result !== undefined && !res.headersSent) {

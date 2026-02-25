@@ -4,7 +4,8 @@ import {
   CustomerLoginDTO,
   CustomerPayload,
   EditCustomerProfileInputs,
-  OrderInputs
+  OrderInputs,
+  CreateOrderDTO
 } from "../../dto/interface/Customer.dto";
 import ICustomerController from "./CustomerController.interface";
 import {
@@ -131,6 +132,29 @@ export default class CustomerController implements ICustomerController {
       return { cart };
     } catch (error: any) {
       console.error("Error in allWishlistFood:", error);
+      throw error;
+    }
+  };
+
+  createOrder = async (payload: ControllerPayload) => {
+    try {
+      const customer = payload.req.user;
+      if (!customer || !customer._id) {
+        throw new Error("User not authenticated");
+      }
+
+      const input = new CreateOrderDTO(payload.req.body);
+      const result = await this.customerService.createOrder(
+        parseInt(customer._id),
+        input
+      );
+
+      return {
+        message: "Order created successfully",
+        order: result,
+      };
+    } catch (error: any) {
+      console.error("Error in createOrder:", error);
       throw error;
     }
   };

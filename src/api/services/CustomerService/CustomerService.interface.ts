@@ -1,4 +1,4 @@
-import { CreateCustomerDTO, EditCustomerProfileInputs } from "../../dto/interface/Customer.dto";
+import { CreateCustomerDTO, EditCustomerProfileInputs, CreateOrderDTO } from "../../dto/interface/Customer.dto";
 import CustomerEntity from "../../entity/CustomerEntity";
 
 
@@ -11,4 +11,5 @@ export default interface ICustomerService {
   updateProfile(customerId: number, input: EditCustomerProfileInputs): Promise<CustomerEntity | null>;
   addToCart(customerId: number, foodId: number, unit: number): Promise<any>;
   getCart(customerId: number): Promise<any>;
+  createOrder(customerId: number, input: CreateOrderDTO): Promise<any>;
 }

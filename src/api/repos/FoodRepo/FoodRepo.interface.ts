@@ -7,4 +7,5 @@ export default interface IFoodRepo {
     imageUrls: string[]
   ): Promise<FoodEntity>;
   getFoods(vendorId: number): Promise<FoodEntity[]>;
+  getFoodById(foodId: number): Promise<FoodEntity | null>;
 }

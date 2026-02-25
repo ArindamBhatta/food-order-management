@@ -22,6 +22,18 @@ export class EditCustomerProfileInputs {
     }
 }
 
+export interface OrderItemInput {
+    _id: string; // This corresponds to foodId
+    unit: number; // This corresponds to quantity
+}
+
+export class CreateOrderDTO {
+    items: OrderItemInput[];
+    constructor(data: any) {
+        this.items = data;
+    }
+}
+
 export interface CustomerPayload {
     _id: string;
     email: string;

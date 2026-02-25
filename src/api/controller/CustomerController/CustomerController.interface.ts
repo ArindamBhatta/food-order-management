@@ -7,4 +7,5 @@ export default interface ICustomerController {
   profileDetails: (payload: ControllerPayload) => any;
   addDetailsOfUser: (payload: ControllerPayload) => any;
   allWishlistFood: (payload: ControllerPayload) => any;
+  createOrder: (payload: ControllerPayload) => any;
 }

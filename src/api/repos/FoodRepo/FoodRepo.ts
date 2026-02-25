@@ -40,9 +40,19 @@ export default class FoodRepo implements IFoodRepo {
   getFoods = async (vendorId: number): Promise<FoodEntity[]> => {
     try {
       const rows = await this.foodDao.getByVendorId(vendorId);
-      return rows.map(row => FoodEntity.fromRow(row));
+      return rows.map((row) => FoodEntity.fromRow(row));
     } catch (error) {
       console.error("Error in FoodRepo.getFoods:", error);
+      throw error;
+    }
+  };
+
+  getFoodById = async (foodId: number): Promise<FoodEntity | null> => {
+    try {
+      const row = await this.foodDao.getById(foodId);
+      return row ? FoodEntity.fromRow(row) : null;
+    } catch (error) {
+      console.error("Error in FoodRepo.getFoodById:", error);
       throw error;
     }
   };

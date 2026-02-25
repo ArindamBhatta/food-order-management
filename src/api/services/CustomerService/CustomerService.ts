@@ -10,21 +10,27 @@ import {
   hashPassword,
   verifyPassword,
 } from "../../utils/auth.utility";
-import { CreateCustomerDTO, EditCustomerProfileInputs } from "../../dto/interface/Customer.dto";
+import { CreateCustomerDTO, EditCustomerProfileInputs, CreateOrderDTO } from "../../dto/interface/Customer.dto";
+import OrderRepo from "../../repos/OrderRepo/OrderRepo";
+import OrderEntity from "../../entity/OrderEntity";
+import OrderItemEntity from "../../entity/OrderItemEntity";
 
 export default class CustomerService implements ICustomerService {
   private customerRepo: CustomerRepo;
   private personRepo: PersonRepo;
   private foodRepo: FoodRepo;
+  private orderRepo: OrderRepo;
 
   constructor(
     customerRepo: CustomerRepo,
     personRepo: PersonRepo,
-    foodRepo: FoodRepo
+    foodRepo: FoodRepo,
+    orderRepo: OrderRepo
   ) {
     this.customerRepo = customerRepo;
     this.personRepo = personRepo;
     this.foodRepo = foodRepo;
+    this.orderRepo = orderRepo;
   }
 
   signUp = async (
@@ -122,5 +128,67 @@ export default class CustomerService implements ICustomerService {
 
   getCart = async (customerId: number) => {
     return await this.customerRepo.getCart(customerId);
+  };
+
+  createOrder = async (customerId: number, input: CreateOrderDTO) => {
+    try {
+      let subtotalAmount = 0;
+      let vendorId = 0;
+
+      const orderItems: any[] = [];
+
+      for (const item of input.items) {
+        const foodId = parseInt(item._id);
+        const food = await this.foodRepo.getFoodById(foodId);
+        if (!food) throw new Error(`Food item ${foodId} not found`);
+
+        if (vendorId === 0) {
+          vendorId = food.vendorId!;
+        } else if (vendorId !== food.vendorId) {
+          throw new Error("All items in an order must be from the same vendor");
+        }
+
+        const itemTotal = food.price * item.unit;
+        subtotalAmount += itemTotal;
+
+        orderItems.push({
+          foodId: foodId,
+          quantity: item.unit,
+          unitPrice: food.price,
+          itemTotal: itemTotal,
+        });
+      }
+
+      const taxAmount = subtotalAmount * 0.05; // 5% tax example
+      const totalAmount = subtotalAmount + taxAmount;
+
+      const orderEntity = new OrderEntity({
+        customerId,
+        vendorId,
+        subtotalAmount,
+        taxAmount,
+        totalAmount,
+        orderStatus: "Waiting",
+        paymentStatus: "Waiting",
+      });
+
+      const savedOrder = await this.orderRepo.createOrder(orderEntity);
+
+      for (const item of orderItems) {
+        const orderItem = new OrderItemEntity({
+          orderId: savedOrder.orderId,
+          foodId: item.foodId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          itemTotal: item.itemTotal,
+        });
+        await this.orderRepo.createOrderItem(orderItem);
+      }
+
+      return savedOrder;
+    } catch (error) {
+      console.error("Error in CustomerService.createOrder:", error);
+      throw error;
+    }
   };
 }
